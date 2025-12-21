@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自分越えスタディログ 究極版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans JP', sans-serif; overflow-x: hidden; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .timer-ring { transition: stroke-dashoffset 0.5s linear; }
+        @keyframes shine { 0% { left: -100%; } 100% { left: 100%; } }
+        .gold-shine { position: relative; overflow: hidden; }
+        .gold-shine::after { content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); transform: skewX(-20deg); animation: shine 3s infinite; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        const Icons = {
+            Zap: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+            Coins: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18 8a6 6 0 0 0-12 0"/><circle cx="16" cy="16" r="6"/><path d="M12 16a6 6 0 0 0 12 0"/></svg>,
+            Store: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M2 7h20"/></svg>,
+            Trophy: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>,
+            Settings: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+            Download: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+            Upload: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
+            ListChecks: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>,
+            Trash: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+            Edit: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+            Snowflake: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>
+        };
+
+        const SHOP_ITEMS = [
+            { id: 'freeze', name: 'お休みポーション', desc: '勉強できない日も継続日数をキープ', price: 400, type: 'passive' },
+            { id: 'shield_7', name: '7日間ガード', desc: '1週間、継続日数を強力に守る', price: 2500, type: 'passive' },
+            { id: 'boost_2x', name: '2倍ブースト', desc: '30分間、獲得ポイントが2倍に', price: 300, type: 'active', multiplier: 2, duration: 30 },
+            { id: 'boost_3x', name: '3倍ブースト', desc: '15分間、獲得ポイントが3倍に', price: 600, type: 'active', multiplier: 3, duration: 15 }
+        ];
+
+        const App = () => {
+            const [logs, setLogs] = useState(() => JSON.parse(localStorage.getItem('study-logs-v12') || '[]'));
+            const [points, setPoints] = useState(() => parseInt(localStorage.getItem('study-points-v12') || '0'));
+            const [inventory, setInventory] = useState(() => JSON.parse(localStorage.getItem('study-inventory-v12') || '{"freeze":0, "shield_7":0, "boost_2x":0, "boost_3x":0}'));
+            const [activeItems, setActiveItems] = useState(() => JSON.parse(localStorage.getItem('study-active-v12') || '{"boostUntil":0, "multiplier":1}'));
+            const [tasks, setTasks] = useState(() => JSON.parse(localStorage.getItem('study-tasks-v12') || '[]'));
+            
+            const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('sv-SE'));
+            const [timerActive, setTimerActive] = useState(false);
+            const [timeLeft, setTimeLeft] = useState(25 * 60);
+            const [timerStartTime, setTimerStartTime] = useState(null);
+            const [showShop, setShowShop] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
+            const [editingTaskId, setEditingTaskId] = useState(null);
+            const fileInputRef = useRef(null);
+
+            useEffect(() => {
+                localStorage.setItem('study-logs-v12', JSON.stringify(logs));
+                localStorage.setItem('study-points-v12', points.toString());
+                localStorage.setItem('study-inventory-v12', JSON.stringify(inventory));
+                localStorage.setItem('study-active-v12', JSON.stringify(activeItems));
+                localStorage.setItem('study-tasks-v12', JSON.stringify(tasks));
+            }, [logs, points, inventory, activeItems, tasks]);
+
+            // ストリーク計算と「お休み」自動消費履歴のチェック
+            const streakInfo = useMemo(() => {
+                const dates = [...new Set(logs.map(l => l.date))].sort();
+                const freezeDates = logs.filter(l => l.isFreeze).map(l => l.date);
+                if (dates.length === 0) return { count: 0 };
+
+                let currentCount = 0;
+                let checkDate = new Date();
+                checkDate.setHours(0,0,0,0);
+                
+                const dateSet = new Set(dates);
+                const todayStr = new Date().toLocaleDateString('sv-SE');
+                
+                // 今日記録がない場合は昨日から数え始める
+                if (!dateSet.has(todayStr)) checkDate.setDate(checkDate.getDate() - 1);
+
+                while (true) {
+                    const ds = checkDate.toLocaleDateString('sv-SE');
+                    if (dateSet.has(ds)) {
+                        currentCount++;
+                        checkDate.setDate(checkDate.getDate() - 1);
+                    } else {
+                        break; 
+                    }
+                    if (currentCount > 5000) break;
+                }
+                return { count: currentCount };
+            }, [logs]);
+
+            useEffect(() => {
+                let interval;
+                if (timerActive && timeLeft > 0) {
+                    interval = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+                } else if (timeLeft === 0 && timerActive) {
+                    handleTimerStop(true);
+                }
+                return () => clearInterval(interval);
+            }, [timerActive, timeLeft]);
+
+            const formatJapaneseTime = (m) => {
+                if (m === 0) return "0分";
+                const h = Math.floor(m / 60);
+                const mins = m % 60;
+                return h > 0 ? `${h}時間 ${mins}分` : `${mins}分`;
+            };
+
+            const topRecords = useMemo(() => {
+                const dailyTotals = logs.reduce((acc, log) => {
+                    if (!log.isFreeze) acc[log.date] = (acc[log.date] || 0) + log.duration;
+                    return acc;
+                }, {});
+                return Object.entries(dailyTotals).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([date, duration]) => ({ date, duration }));
+            }, [logs]);
+
+            const todayTotal = useMemo(() => logs.filter(l => l.date === selectedDate && !l.isFreeze).reduce((s, l) => s + l.duration, 0), [logs, selectedDate]);
+
+            const addLog = (duration, start, end, note = "", isFreeze = false) => {
+                const isBoosting = !isFreeze && Date.now() < activeItems.boostUntil;
+                const mult = isBoosting ? activeItems.multiplier : 1;
+                const gainedPoints = isFreeze ? 0 : Math.floor(duration * mult);
+                
+                setLogs(prev => [...prev, { 
+                    id: Date.now(), 
+                    date: selectedDate, 
+                    start, 
+                    end, 
+                    duration, 
+                    comment: note, 
+                    multiplier: mult,
+                    isFreeze: isFreeze
+                }]);
+                
+                if (gainedPoints > 0) {
+                    setPoints(prev => prev + gainedPoints);
+                    confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+                }
+            };
+
+            const handleTimerStop = (isComplete) => {
+                setTimerActive(false);
+                const now = new Date();
+                const elapsedSeconds = isComplete ? (25 * 60) : Math.floor((now - timerStartTime) / 1000);
+                const elapsedMinutes = Math.round(elapsedSeconds / 60);
+                if (elapsedMinutes >= 1) {
+                    addLog(elapsedMinutes, timerStartTime.toTimeString().slice(0, 5), now.toTimeString().slice(0, 5), isComplete ? "25分集中達成！" : "集中を記録");
+                }
+                setTimeLeft(25 * 60);
+                setTimerStartTime(null);
+            };
+
+            const useFreezeItem = () => {
+                if (inventory.freeze > 0) {
+                    // 今日既にお休みを使っているかチェック
+                    const alreadyUsed = logs.some(l => l.date === selectedDate && l.isFreeze);
+                    if (alreadyUsed) {
+                        alert("この日は既にお休みを使用しています。");
+                        return;
+                    }
+                    setInventory(prev => ({ ...prev, freeze: prev.freeze - 1 }));
+                    addLog(0, "--:--", "--:--", "❄️ お休みポーション使用", true);
+                } else {
+                    alert("お休みポーションを持っていません。ショップで購入してください。");
+                }
+            };
+
+            // Task Handlers
+            const handleAddTask = (e) => {
+                if (e.key === 'Enter' && e.target.value.trim() && tasks.length < 6) {
+                    setTasks([...tasks, { id: Date.now(), text: e.target.value, completed: false }]);
+                    e.target.value = "";
+                }
+            };
+
+            const toggleTask = (id) => {
+                setTasks(tasks.map(t => {
+                    if (t.id === id && !t.completed) confetti({ particleCount: 40, spread: 30, colors: ['#6366f1'] });
+                    return t.id === id ? { ...t, completed: !t.completed } : t;
+                }));
+            };
+
+            const deleteTask = (id, e) => {
+                e.stopPropagation();
+                setTasks(tasks.filter(t => t.id !== id));
+            };
+
+            const startEditingTask = (id, e) => {
+                e.stopPropagation();
+                setEditingTaskId(id);
+            };
+
+            const updateTaskText = (id, newText) => {
+                setTasks(tasks.map(t => t.id === id ? { ...t, text: newText } : t));
+                setEditingTaskId(null);
+            };
+
+            // Data Handlers
+            const exportData = () => {
+                const data = { logs, points, inventory, activeItems, tasks, exportDate: new Date().toISOString() };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `study_log_backup_${new Date().toISOString().slice(0,10)}.json`;
+                a.click();
+            };
+
+            const importData = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if (data.logs) setLogs(data.logs);
+                        if (data.points !== undefined) setPoints(data.points);
+                        if (data.inventory) setInventory(data.inventory);
+                        if (data.tasks) setTasks(data.tasks);
+                        setShowSettings(false);
+                        alert("データを復元しました！");
+                    } catch (err) { alert("無効なファイルです。"); }
+                };
+                reader.readAsText(file);
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-50 p-4 pb-12">
+                    <div className="max-w-6xl mx-auto space-y-6">
+                        
+                        {/* ヘッダー */}
+                        <div className="flex justify-between items-center mb-2">
+                            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white"><Icons.Zap className="w-5 h-5 fill-current" /></div>
+                                スタディログ <span className="text-indigo-600">Pro</span>
+                            </h1>
+                            <button onClick={() => setShowSettings(true)} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
+                                <Icons.Settings className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        {/* ステータス */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-4">
+                                <div className="w-12 h-12 bg-yellow-100 rounded-2xl flex items-center justify-center text-yellow-600"><Icons.Coins className="w-7 h-7" /></div>
+                                <div><p className="text-[10px] font-black text-slate-400 uppercase">ポイント</p><p className="text-xl font-black">{points.toLocaleString()} <span className="text-xs font-normal">SP</span></p></div>
+                            </div>
+                            <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-4 relative">
+                                <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600"><Icons.Zap className="w-7 h-7" /></div>
+                                <div><p className="text-[10px] font-black text-slate-400 uppercase">継続日数</p><p className="text-xl font-black text-orange-600">{streakInfo.count}日</p></div>
+                            </div>
+                            <div className="bg-indigo-600 p-6 rounded-[2rem] shadow-lg text-white flex items-center justify-between">
+                                <div><p className="text-[10px] font-black text-white/60 uppercase">今日の合計</p><p className="text-xl font-black">{formatJapaneseTime(todayTotal)}</p></div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setShowShop(true)} className="p-3 bg-white/20 hover:bg-white/30 rounded-2xl transition-all" title="ショップ"><Icons.Store className="w-6 h-6" /></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            {/* タイマー & 記録 */}
+                            <div className="lg:col-span-4 space-y-6">
+                                <div className="bg-slate-900 p-8 rounded-[3rem] text-white shadow-xl text-center">
+                                    <div className="relative w-44 h-44 mx-auto mb-6 flex items-center justify-center">
+                                        <svg className="w-full h-full -rotate-90">
+                                            <circle cx="88" cy="88" r="82" stroke="white" strokeWidth="6" fill="none" opacity="0.1" />
+                                            <circle cx="88" cy="88" r="82" stroke="#6366f1" strokeWidth="6" fill="none" strokeDasharray="515" strokeDashoffset={515 - (515 * timeLeft) / (25 * 60)} className="timer-ring" />
+                                        </svg>
+                                        <div className="absolute text-5xl font-black tabular-nums">{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</div>
+                                    </div>
+                                    <button onClick={() => timerActive ? handleTimerStop(false) : (setTimerStartTime(new Date()), setTimerActive(true))} className={`w-full py-4 rounded-2xl font-black text-sm transition-all shadow-lg ${timerActive ? 'bg-red-500' : 'bg-indigo-600'}`}>{timerActive ? 'ストップして記録' : '集中を開始'}</button>
+                                    <p className="mt-4 text-[10px] text-white/40 font-bold tracking-widest uppercase">集中タイマー</p>
+                                </div>
+
+                                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm">
+                                    <h3 className="text-xs font-black text-slate-400 uppercase mb-4 flex items-center gap-2"><Icons.Trophy className="w-4 h-4 text-yellow-500" /> ハイスコア（1日の最長）</h3>
+                                    <div className="space-y-2">
+                                        {topRecords.map((r, i) => (
+                                            <div key={i} className={`p-3 rounded-xl flex justify-between items-center ${i === 0 ? 'bg-yellow-50 border border-yellow-100 gold-shine' : 'bg-slate-50'}`}>
+                                                <span className="text-[10px] font-bold text-slate-400">{r.date}</span>
+                                                <span className="text-xs font-black text-slate-700">{formatJapaneseTime(r.duration)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* アイビー・リー 6つのタスク */}
+                            <div className="lg:col-span-4 space-y-6">
+                                <div className="bg-white p-7 rounded-[3rem] border border-slate-200 shadow-sm h-full flex flex-col">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-xs font-black text-slate-400 uppercase flex items-center gap-2"><Icons.ListChecks className="w-4 h-4" /> 今日の最優先タスク</h3>
+                                        <button onClick={() => setTasks([])} className="text-[10px] font-bold text-slate-300 hover:text-red-400">一括削除</button>
+                                    </div>
+                                    <div className="flex-1 space-y-3">
+                                        {tasks.map((task, idx) => (
+                                            <div key={task.id} className={`group relative p-4 rounded-2xl border-2 transition-all flex items-center gap-3 ${task.completed ? 'bg-indigo-50 border-transparent opacity-60' : 'bg-white border-slate-100 hover:border-indigo-200'}`}>
+                                                <div onClick={() => toggleTask(task.id)} className="flex items-center gap-3 flex-1 cursor-pointer">
+                                                    <span className="text-[10px] font-black text-indigo-400 w-4">{idx + 1}</span>
+                                                    {editingTaskId === task.id ? (
+                                                        <input 
+                                                            autoFocus
+                                                            className="flex-1 text-sm font-bold bg-transparent outline-none border-b border-indigo-300"
+                                                            defaultValue={task.text}
+                                                            onBlur={(e) => updateTaskText(task.id, e.target.value)}
+                                                            onKeyDown={(e) => e.key === 'Enter' && updateTaskText(task.id, e.target.value)}
+                                                        />
+                                                    ) : (
+                                                        <p className={`flex-1 text-sm font-bold ${task.completed ? 'line-through text-indigo-400' : 'text-slate-700'}`}>{task.text}</p>
+                                                    )}
+                                                </div>
+                                                
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={(e) => startEditingTask(task.id, e)} className="text-slate-300 hover:text-indigo-500 transition-colors opacity-0 group-hover:opacity-100"><Icons.Edit className="w-3.5 h-3.5" /></button>
+                                                    <button onClick={(e) => deleteTask(task.id, e)} className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"><Icons.Trash className="w-3.5 h-3.5" /></button>
+                                                    <div onClick={() => toggleTask(task.id)} className={`w-5 h-5 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${task.completed ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-slate-200'}`}>
+                                                        {task.completed && <span className="text-[10px]">✓</span>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {tasks.length < 6 && (
+                                            <input onKeyDown={handleAddTask} type="text" placeholder="次のタスクを入力..." className="w-full p-4 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-indigo-300 focus:bg-white transition-all" />
+                                        )}
+                                    </div>
+                                    <p className="mt-4 text-[9px] text-slate-400 font-bold text-center">完了したらチェック！クリックで内容編集も可能</p>
+                                </div>
+                            </div>
+
+                            {/* 履歴 & アイテム */}
+                            <div className="lg:col-span-4 space-y-6">
+                                <div className="bg-white p-7 rounded-[3rem] border border-slate-200 shadow-sm max-h-[22rem] overflow-hidden flex flex-col">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="text-lg font-black bg-slate-50 p-2 rounded-xl outline-none" />
+                                        <button onClick={useFreezeItem} className={`p-2 rounded-xl transition-all ${inventory.freeze > 0 ? 'bg-blue-100 text-blue-600 hover:bg-blue-200' : 'bg-slate-100 text-slate-300'}`} title="この日をお休みにする">
+                                            <Icons.Snowflake className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                                        {logs.filter(l => l.date === selectedDate).length === 0 ? (
+                                            <p className="text-center text-xs text-slate-400 py-10 italic">この日の記録はありません</p>
+                                        ) : (
+                                            logs.filter(l => l.date === selectedDate).reverse().map(log => (
+                                                <div key={log.id} className={`p-4 rounded-2xl border flex justify-between items-center text-xs ${log.isFreeze ? 'bg-blue-50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
+                                                    <div>
+                                                        <p className="text-[9px] font-black text-slate-400">{log.start}—{log.end}</p>
+                                                        <p className={`font-bold ${log.isFreeze ? 'text-blue-700' : 'text-slate-700'}`}>{log.comment || '学習記録'}</p>
+                                                    </div>
+                                                    <span className="font-black">{log.isFreeze ? 'FREEZE' : `${log.duration}分`}</span>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="bg-white p-7 rounded-[3rem] border border-slate-200 shadow-sm">
+                                    <h3 className="text-xs font-black text-slate-400 uppercase mb-4">所持アイテム</h3>
+                                    <div className="grid grid-cols-4 gap-3">
+                                        {Object.entries(inventory).map(([id, count]) => (
+                                            <div key={id} className={`p-3 rounded-2xl border flex flex-col items-center gap-1 ${count > 0 ? 'bg-slate-50 border-slate-100' : 'bg-white border-slate-50 opacity-20'}`}>
+                                                <span className="text-[10px] font-black">{count}</span>
+                                                <div className="w-6 h-6 flex items-center justify-center text-indigo-400">
+                                                    {id === 'freeze' ? <Icons.Snowflake className="w-4 h-4 text-blue-400" /> : <Icons.Zap className="w-4 h-4" />}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 各種モーダル */}
+                        {showSettings && (
+                            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                                <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-6">
+                                    <h2 className="text-xl font-black flex items-center gap-2"><Icons.Settings className="w-6 h-6" /> データ管理</h2>
+                                    <div className="space-y-3">
+                                        <button onClick={exportData} className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 rounded-2xl transition-all group">
+                                            <div className="text-left"><p className="text-sm font-black group-hover:text-indigo-600">JSON書き出し</p><p className="text-[10px] text-slate-400">バックアップを保存</p></div>
+                                            <Icons.Download className="w-5 h-5 text-slate-300 group-hover:text-indigo-600" />
+                                        </button>
+                                        <button onClick={() => fileInputRef.current.click()} className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 rounded-2xl transition-all group">
+                                            <div className="text-left"><p className="text-sm font-black group-hover:text-indigo-600">JSON読み込み</p><p className="text-[10px] text-slate-400">データを復元</p></div>
+                                            <Icons.Upload className="w-5 h-5 text-slate-300 group-hover:text-indigo-600" />
+                                        </button>
+                                        <input type="file" ref={fileInputRef} onChange={importData} className="hidden" accept=".json" />
+                                    </div>
+                                    <button onClick={() => setShowSettings(false)} className="w-full py-3 bg-slate-900 text-white rounded-2xl font-black text-sm">閉じる</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {showShop && (
+                            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                                <div className="bg-white w-full max-w-lg rounded-[3rem] overflow-hidden shadow-2xl">
+                                    <div className="bg-indigo-600 p-8 text-white flex justify-between items-center">
+                                        <h2 className="text-2xl font-black">アイテムショップ</h2>
+                                        <button onClick={() => setShowShop(false)} className="text-xl font-bold">✕</button>
+                                    </div>
+                                    <div className="p-6 space-y-3 max-h-[50vh] overflow-y-auto custom-scrollbar">
+                                        <div className="mb-4 flex items-center justify-center gap-2 bg-yellow-50 py-2 rounded-xl border border-yellow-100">
+                                            <Icons.Coins className="w-4 h-4 text-yellow-600" />
+                                            <span className="font-black text-yellow-700">{points.toLocaleString()} SP 所持</span>
+                                        </div>
+                                        {SHOP_ITEMS.map(item => (
+                                            <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <div className="flex-1 pr-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-sm font-black">{item.name}</p>
+                                                        {item.id === 'freeze' && <Icons.Snowflake className="w-3 h-3 text-blue-400" />}
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-400">{item.desc}</p>
+                                                </div>
+                                                <button onClick={() => points >= item.price && (setPoints(points - item.price), setInventory({...inventory, [item.id]: (inventory[item.id] || 0) + 1}))} className={`px-4 py-2 rounded-xl text-[10px] font-black ${points >= item.price ? 'bg-indigo-600 text-white shadow-md active:scale-95' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}>{item.price} SP</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
