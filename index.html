@@ -8,156 +8,294 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
-        body { font-family: 'Noto Sans JP', sans-serif; }
+        
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.4);
+        }
+
+        body { 
+            font-family: 'Noto Sans JP', sans-serif; 
+            background: linear-gradient(135deg, #f0f4ff 0%, #e5eaff 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        /* グラスモーフィズム効果 */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        
         .loading-dots:after { content: '.'; animation: dots 1.5s steps(5, end) infinite; }
         @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60% { content: '...'; } 80%, 100% { content: ''; } }
-        @media (min-width: 768px) { .desktop-nav-active { background-color: #f3f4f6; color: #4f46e5; } }
+
+        .desktop-nav-active { 
+            background: rgba(79, 70, 229, 0.1); 
+            color: #4f46e5;
+            box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.2);
+        }
+
+        /* コーチ画面のカスタムスクロールバー */
+        #chatHistory::-webkit-scrollbar { width: 6px; }
+        #chatHistory::-webkit-scrollbar-track { background: transparent; }
+        #chatHistory::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 10px; }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.5);
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-gray-800 pb-20 md:pb-0">
+<body class="text-gray-800 pb-28 md:pb-8">
 
-    <!-- Header -->
-    <header class="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <h1 class="text-xl font-black text-indigo-600 flex items-center select-none">
-                <i class="fas fa-book-open mr-2"></i> StudyLog
+    <!-- ヘッダー -->
+    <header class="glass-card sticky top-0 z-40 mb-6">
+        <div class="max-w-6xl mx-auto px-6 h-18 py-4 flex items-center justify-between">
+            <h1 class="text-2xl font-black text-indigo-600 flex items-center select-none tracking-tighter italic">
+                <i class="fas fa-layer-group mr-3"></i> StudyLog
             </h1>
             
-            <nav class="hidden md:flex items-center space-x-1">
-                <button onclick="switchTab('timer')" class="nav-btn-desktop px-4 py-2 rounded-lg font-bold text-gray-500 hover:bg-gray-100 transition-all desktop-nav-active" data-tab="timer">タイマー</button>
-                <button onclick="switchTab('manual')" class="nav-btn-desktop px-4 py-2 rounded-lg font-bold text-gray-500 hover:bg-gray-100 transition-all" data-tab="manual">手動入力</button>
-                <button onclick="switchTab('coach')" class="nav-btn-desktop px-4 py-2 rounded-lg font-bold text-gray-500 hover:bg-gray-100 transition-all" data-tab="coach">AIコーチ</button>
-                <button onclick="switchTab('history')" class="nav-btn-desktop px-4 py-2 rounded-lg font-bold text-gray-500 hover:bg-gray-100 transition-all" data-tab="history">履歴</button>
+            <nav class="hidden md:flex items-center space-x-2 bg-white/30 p-1.5 rounded-2xl">
+                <button onclick="switchTab('main')" class="nav-btn-desktop px-5 py-2.5 rounded-xl font-bold text-gray-500 hover:bg-white/50 transition-all desktop-nav-active" data-tab="main">学習入力</button>
+                <button onclick="switchTab('coach')" class="nav-btn-desktop px-5 py-2.5 rounded-xl font-bold text-gray-500 hover:bg-white/50 transition-all" data-tab="coach">AIコーチ</button>
+                <button onclick="switchTab('history')" class="nav-btn-desktop px-5 py-2.5 rounded-xl font-bold text-gray-500 hover:bg-white/50 transition-all" data-tab="history">履歴</button>
             </nav>
 
-            <div class="flex gap-2">
-                <button onclick="toggleModal('settingsModal')" title="設定" class="p-2 text-gray-400 hover:text-indigo-600 transition-colors">
-                    <i class="fas fa-cog text-lg"></i>
-                </button>
-                <button onclick="toggleModal('dataModal')" title="データ管理" class="p-2 text-gray-400 hover:text-indigo-600 transition-colors">
-                    <i class="fas fa-save text-lg"></i>
-                </button>
+            <div class="flex gap-1">
+                <button onclick="toggleModal('settingsModal')" title="設定" class="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors bg-white/40 rounded-full"><i class="fas fa-cog"></i></button>
+                <button onclick="toggleModal('dataModal')" title="データ管理" class="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors bg-white/40 rounded-full"><i class="fas fa-database"></i></button>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="max-w-4xl mx-auto p-4 md:p-12">
-        <!-- Timer Tab -->
-        <div id="timerTab" class="tab-content active animate-in fade-in text-center">
-            <div id="timerDisplay" class="text-8xl md:text-9xl font-mono font-bold text-indigo-600 mb-8">25:00</div>
-            <div class="flex justify-center space-x-4 mb-8">
-                <button id="btnStartStop" onclick="toggleTimer()" class="bg-indigo-600 text-white px-10 py-4 rounded-full font-bold text-xl shadow-lg">開始</button>
-                <button onclick="resetTimer()" class="bg-gray-200 text-gray-600 px-6 py-4 rounded-full font-bold">リセット</button>
+    <main class="max-w-4xl mx-auto px-4 sm:px-6">
+        
+        <!-- 学習入力タブ -->
+        <div id="mainTab" class="tab-content active space-y-8 animate-in fade-in zoom-in-95 duration-500">
+            
+            <!-- 入力カード -->
+            <div class="glass-card rounded-[3rem] p-8 md:p-12 space-y-8">
+                <div class="space-y-6">
+                    <div class="relative group">
+                        <label class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] ml-1">現在の科目</label>
+                        <input type="text" id="entrySubject" placeholder="数学・英語・プログラミングなど" 
+                               class="w-full text-2xl md:text-3xl font-black placeholder:text-gray-200 border-none bg-transparent focus:ring-0 p-0 transition-all mt-1">
+                    </div>
+
+                    <div class="relative group">
+                        <label class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] ml-1">学習の目標</label>
+                        <textarea id="entryDetails" placeholder="具体的に何をする？（例：問題集の10ページまで解く）" 
+                                  class="w-full text-lg text-gray-600 placeholder:text-gray-200 border-none bg-transparent focus:ring-0 p-0 h-24 resize-none leading-relaxed mt-1"></textarea>
+                    </div>
+                </div>
+
+                <!-- 補足メモ -->
+                <div class="flex items-center gap-3 bg-white/20 p-4 rounded-[1.5rem] border border-white/30">
+                    <i class="fas fa-feather-alt text-indigo-300 text-sm ml-1"></i>
+                    <input type="text" id="entryMemo" placeholder="気づいたこと、感想など（自由入力）" class="flex-1 bg-transparent border-none focus:ring-0 text-sm font-bold placeholder:text-gray-400">
+                </div>
             </div>
-            <div id="btnSaveSession" class="hidden"><button onclick="saveTimerSession()" class="bg-green-500 text-white px-8 py-3 rounded-xl font-bold">記録を保存</button></div>
+
+            <!-- 記録方法の選択 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <!-- タイマーパネル -->
+                <div class="glass-card rounded-[3rem] p-10 flex flex-col items-center justify-center space-y-8 relative overflow-hidden">
+                    <div id="timerDisplay" class="text-7xl font-mono font-bold text-indigo-600 tracking-tighter drop-shadow-sm">25:00</div>
+                    
+                    <div class="flex items-center gap-6">
+                        <button onclick="resetTimer()" class="w-14 h-14 rounded-full bg-white/50 text-gray-400 hover:text-gray-600 flex items-center justify-center border border-white/50"><i class="fas fa-redo-alt"></i></button>
+                        <button id="btnStartStop" onclick="toggleTimer()" class="px-12 py-5 bg-indigo-600 text-white rounded-3xl font-black hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 active:scale-95 text-lg">開始</button>
+                        <button id="btnSaveTimer" onclick="saveSession('timer')" class="hidden w-14 h-14 rounded-full bg-green-500 text-white flex items-center justify-center animate-bounce shadow-lg"><i class="fas fa-check"></i></button>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="setTimerDuration(25)" class="text-[11px] font-black bg-white/40 px-4 py-1.5 rounded-full text-gray-500 hover:bg-indigo-600 hover:text-white transition-all">集中 25分</button>
+                        <button onclick="setTimerDuration(50)" class="text-[11px] font-black bg-white/40 px-4 py-1.5 rounded-full text-gray-500 hover:bg-indigo-600 hover:text-white transition-all">深く 50分</button>
+                        <button onclick="setTimerDuration(5)" class="text-[11px] font-black bg-white/40 px-4 py-1.5 rounded-full text-gray-500 hover:bg-teal-500 hover:text-white transition-all">休憩 5分</button>
+                    </div>
+                </div>
+
+                <!-- 手動入力パネル -->
+                <div class="glass-card rounded-[3rem] p-10 flex flex-col space-y-6">
+                    <div class="space-y-4 flex-1">
+                        <div class="bg-white/20 rounded-3xl p-6 border border-white/30">
+                            <label class="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">学習時間 (分)</label>
+                            <input type="number" id="manualMinutes" placeholder="0" class="w-full bg-transparent border-none focus:ring-0 text-5xl font-black p-0 text-indigo-700">
+                        </div>
+                        <div class="bg-white/20 rounded-3xl p-6 border border-white/30">
+                            <label class="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">学習日</label>
+                            <input type="date" id="manualDate" class="w-full bg-transparent border-none focus:ring-0 font-black p-0 text-gray-600 text-lg">
+                        </div>
+                    </div>
+
+                    <button onclick="saveSession('manual')" class="w-full py-5 bg-white text-indigo-600 border border-indigo-100 rounded-3xl font-black hover:bg-indigo-600 hover:text-white transition-all shadow-lg active:scale-95">
+                        記録を保存
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <!-- Manual Tab -->
-        <div id="manualTab" class="tab-content animate-in fade-in">
-            <div class="max-w-xl mx-auto bg-white p-8 rounded-3xl shadow-xl space-y-4">
-                <h3 class="text-2xl font-black mb-4">手動入力</h3>
-                <input type="date" id="manualDate" class="w-full p-4 bg-gray-50 rounded-xl outline-none">
-                <input type="number" id="manualMinutes" placeholder="時間(分)" class="w-full p-4 bg-gray-50 rounded-xl outline-none">
-                <input type="text" id="manualSubject" placeholder="科目名" class="w-full p-4 bg-gray-50 rounded-xl outline-none">
-                <button onclick="saveManualSession()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold">保存</button>
+        <!-- AIコーチタブ -->
+        <div id="coachTab" class="tab-content animate-in slide-in-from-right-10 duration-500">
+            <div class="flex flex-col gap-6 min-h-[750px] md:min-h-[850px]">
+                <!-- ステータス表示 -->
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="glass-card p-6 rounded-[2rem] flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase">継続日数</p>
+                            <span id="streakDisplay" class="text-2xl font-black text-indigo-600">0日</span>
+                        </div>
+                        <i class="fas fa-fire text-orange-400 text-2xl"></i>
+                    </div>
+                    <div class="glass-card p-6 rounded-[2rem] flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase">現在のランク</p>
+                            <span id="rankDisplay" class="text-sm font-black text-gray-700">🌱 見習い</span>
+                        </div>
+                        <i class="fas fa-award text-yellow-400 text-2xl"></i>
+                    </div>
+                </div>
+
+                <!-- コーチインターフェース（縦長） -->
+                <div class="flex-1 glass-card rounded-[3rem] overflow-hidden flex flex-col border border-white/50 shadow-2xl">
+                    <div class="p-6 border-b border-white/20 bg-white/10 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-gray-800">AIコーチ</h3>
+                            <p class="text-[10px] font-bold text-green-500 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> 待機中
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- チャットエリア -->
+                    <div id="chatHistory" class="flex-1 overflow-y-auto p-8 space-y-6"></div>
+
+                    <div id="typingIndicator" class="hidden px-8 py-2 text-[10px] font-black text-indigo-400 tracking-widest"><span class="loading-dots italic">思考中</span></div>
+                    
+                    <!-- チャット入力 -->
+                    <div class="p-6 bg-white/20 border-t border-white/20">
+                        <form onsubmit="handleChatSubmit(event)" class="flex gap-3 items-center bg-white/60 p-2 rounded-[2rem] shadow-inner">
+                            <input type="text" id="chatInput" placeholder="勉強の悩みや目標を話してみよう..." 
+                                   class="flex-1 bg-transparent border-none focus:ring-0 px-4 py-3 text-sm font-bold text-gray-700 placeholder:text-gray-400">
+                            <button type="submit" class="bg-indigo-600 text-white w-12 h-12 rounded-full shadow-lg hover:bg-indigo-700 transition-all active:scale-90 flex items-center justify-center">
+                                <i class="fas fa-paper-plane text-sm"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Coach Tab -->
-        <div id="coachTab" class="tab-content animate-in fade-in h-[500px] flex flex-col bg-white rounded-3xl shadow-xl overflow-hidden border">
-            <div id="chatHistory" class="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50"></div>
-            <div id="typingIndicator" class="hidden px-6 py-2 text-xs text-indigo-500 font-bold"><span class="loading-dots">AIが考え中</span></div>
-            <form onsubmit="handleChatSubmit(event)" class="p-4 border-t flex gap-2">
-                <input type="text" id="chatInput" placeholder="AIコーチに相談..." class="flex-1 p-3 bg-gray-100 rounded-xl outline-none">
-                <button type="submit" class="bg-indigo-600 text-white px-6 rounded-xl"><i class="fas fa-paper-plane"></i></button>
-            </form>
-        </div>
-
-        <!-- History Tab -->
-        <div id="historyTab" class="tab-content animate-in fade-in space-y-4">
-            <div class="bg-indigo-600 p-6 rounded-3xl text-white">
-                <p class="font-bold">累計学習時間: <span id="totalMinutesDisplay">0</span> 分</p>
+        <!-- 履歴タブ -->
+        <div id="historyTab" class="tab-content animate-in fade-in duration-500 space-y-8">
+            <div class="glass-card p-10 rounded-[3.5rem] relative overflow-hidden">
+                <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                    <div>
+                        <p class="text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em] mb-3">学習スタッツ</p>
+                        <h2 class="text-6xl font-black text-gray-800 leading-none"><span id="totalMinutesDisplay">0</span> <span class="text-2xl text-gray-300">分</span></h2>
+                    </div>
+                    <div class="flex gap-10">
+                        <div class="text-right">
+                            <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">合計セッション数</p>
+                            <p id="sessionCountDisplay" class="text-3xl font-black text-gray-800">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="absolute -right-20 -top-20 w-64 h-64 bg-indigo-100/30 rounded-full blur-3xl"></div>
             </div>
-            <div id="historyList" class="space-y-4"></div>
+            <div id="historyList" class="space-y-6"></div>
         </div>
     </main>
 
-    <!-- Modal: Settings (API KEY) -->
-    <div id="settingsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-md space-y-6">
-            <h3 class="text-xl font-black">AIコーチ設定</h3>
-            <p class="text-sm text-gray-500">GitHubで動作させるには Gemini API キーが必要です。</p>
-            <input type="password" id="userApiKey" placeholder="APIキーを入力 (AIを使わないなら空でOK)" class="w-full p-4 bg-gray-50 rounded-xl border outline-none">
-            <p class="text-[10px] text-gray-400">※キーはブラウザにのみ保存され、サーバーへは送られません。</p>
-            <div class="flex gap-2">
-                <button onclick="saveSettings()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">保存</button>
-                <button onclick="toggleModal('settingsModal')" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold">閉じる</button>
+    <!-- モーダル：設定 -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xl hidden items-center justify-center p-6 z-50">
+        <div class="glass-card rounded-[3rem] p-10 w-full max-w-md space-y-8">
+            <h3 class="text-2xl font-black text-center">設定</h3>
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-1">Gemini APIキー</label>
+                <input type="password" id="userApiKey" placeholder="APIキーを貼り付けてください" class="w-full p-5 bg-white/40 rounded-3xl border-none outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm">
             </div>
+            <button onclick="saveSettings()" class="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-xl shadow-indigo-100">設定を保存</button>
+            <button onclick="toggleModal('settingsModal')" class="w-full text-gray-400 font-black text-xs uppercase tracking-widest">閉じる</button>
         </div>
     </div>
 
-    <!-- Modal: Data Management -->
-    <div id="dataModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-md space-y-4">
-            <h3 class="text-xl font-black">データ管理</h3>
-            <button onclick="exportData()" class="w-full bg-gray-100 py-3 rounded-xl font-bold">データを書き出し</button>
-            <textarea id="importText" placeholder="JSONを貼り付け" class="w-full h-32 p-4 bg-gray-50 rounded-xl text-xs"></textarea>
-            <button onclick="importData()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">読み込み</button>
-            <button onclick="toggleModal('dataModal')" class="w-full py-2 text-gray-400">閉じる</button>
+    <!-- モーダル：データ管理 -->
+    <div id="dataModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xl hidden items-center justify-center p-6 z-50">
+        <div class="glass-card rounded-[3rem] p-10 w-full max-w-md space-y-6">
+            <h3 class="text-2xl font-black text-center text-gray-800">データセンター</h3>
+            <button onclick="exportData()" class="w-full bg-white/60 py-4 rounded-2xl font-black text-gray-600 border border-white">データをクリップボードにコピー</button>
+            <textarea id="importText" placeholder="JSONデータをここに貼り付け..." class="w-full h-40 p-5 bg-white/40 rounded-3xl text-xs font-mono border-none outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+            <button onclick="importData()" class="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-xl">データを同期</button>
+            <button onclick="toggleModal('dataModal')" class="w-full text-gray-400 font-black text-xs uppercase tracking-widest">閉じる</button>
         </div>
     </div>
 
-    <!-- Mobile Nav -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-2 z-40">
-        <button onclick="switchTab('timer')" class="nav-btn-mobile flex flex-col items-center p-2 w-full text-indigo-600" data-tab="timer"><i class="fas fa-clock"></i></button>
-        <button onclick="switchTab('manual')" class="nav-btn-mobile flex flex-col items-center p-2 w-full text-gray-400" data-tab="manual"><i class="fas fa-plus-circle"></i></button>
-        <button onclick="switchTab('coach')" class="nav-btn-mobile flex flex-col items-center p-2 w-full text-gray-400" data-tab="coach"><i class="fas fa-robot"></i></button>
-        <button onclick="switchTab('history')" class="nav-btn-mobile flex flex-col items-center p-2 w-full text-gray-400" data-tab="history"><i class="fas fa-list"></i></button>
+    <!-- モバイルナビゲーション -->
+    <nav class="md:hidden fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] glass-card rounded-[2.5rem] flex justify-around p-3 z-50 border border-white/40">
+        <button onclick="switchTab('main')" class="nav-btn-mobile flex flex-col items-center p-3 w-full text-indigo-600" data-tab="main"><i class="fas fa-th-large text-lg"></i></button>
+        <button onclick="switchTab('coach')" class="nav-btn-mobile flex flex-col items-center p-3 w-full text-gray-400" data-tab="coach"><i class="fas fa-comment-alt text-lg"></i></button>
+        <button onclick="switchTab('history')" class="nav-btn-mobile flex flex-col items-center p-3 w-full text-gray-400" data-tab="history"><i class="fas fa-list-ul text-lg"></i></button>
     </nav>
 
     <script>
-        // --- State ---
-        let sessions = JSON.parse(localStorage.getItem('studySessions_v2') || '[]');
-        let currentTimer = { timeLeft: 25 * 60, isRunning: false };
+        const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
+        let internalApiKey = localStorage.getItem('gemini_api_key') || "";
+        let sessions = JSON.parse(localStorage.getItem('studySessions_v4') || '[]');
+        let currentTimer = { timeLeft: 25 * 60, isRunning: false, duration: 25 };
         let timerInterval = null;
-        let internalApiKey = ""; // This will be set from localStorage or auto-injected
 
-        // --- Init ---
         window.onload = () => {
-            // Retrieve saved key if exists
-            internalApiKey = localStorage.getItem('gemini_api_key') || "";
             document.getElementById('userApiKey').value = internalApiKey;
             document.getElementById('manualDate').value = new Date().toLocaleDateString('sv-SE');
-            updateStats();
             renderHistory();
+            updateStats();
         };
 
-        function saveSettings() {
-            const val = document.getElementById('userApiKey').value.trim();
-            localStorage.setItem('gemini_api_key', val);
-            internalApiKey = val;
-            alert("設定を保存しました。AIコーチが使えるようになります。");
-            toggleModal('settingsModal');
-        }
-
-        // --- Tabs ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId + 'Tab').classList.add('active');
-            document.querySelectorAll('.nav-btn-desktop').forEach(btn => btn.classList.toggle('desktop-nav-active', btn.dataset.tab === tabId));
+            
+            document.querySelectorAll('.nav-btn-mobile, .nav-btn-desktop').forEach(btn => {
+                const isActive = btn.dataset.tab === tabId;
+                if (btn.classList.contains('nav-btn-mobile')) {
+                    btn.classList.toggle('text-indigo-600', isActive);
+                    btn.classList.toggle('text-gray-400', !isActive);
+                } else {
+                    btn.classList.toggle('desktop-nav-active', isActive);
+                }
+            });
             if(tabId === 'coach' && document.getElementById('chatHistory').children.length === 0) initCoach();
+            window.scrollTo({top: 0, behavior: 'smooth'});
         }
 
-        function toggleModal(id) {
-            const el = document.getElementById(id);
-            el.classList.toggle('hidden');
-            el.classList.toggle('flex');
+        // --- タイマー処理 ---
+        function setTimerDuration(mins) {
+            currentTimer.duration = mins;
+            currentTimer.timeLeft = mins * 60;
+            currentTimer.isRunning = false;
+            clearInterval(timerInterval);
+            updateTimerDisplay();
+            document.getElementById('btnStartStop').innerText = "開始";
+            document.getElementById('btnSaveTimer').classList.add('hidden');
         }
 
-        // --- Timer ---
+        function updateTimerDisplay() {
+            const m = Math.floor(currentTimer.timeLeft / 60);
+            const s = currentTimer.timeLeft % 60;
+            document.getElementById('timerDisplay').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
         function toggleTimer() {
             currentTimer.isRunning = !currentTimer.isRunning;
             const btn = document.getElementById('btnStartStop');
@@ -165,12 +303,12 @@
                 btn.innerText = "一時停止";
                 timerInterval = setInterval(() => {
                     currentTimer.timeLeft--;
-                    const m = Math.floor(currentTimer.timeLeft / 60);
-                    const s = currentTimer.timeLeft % 60;
-                    document.getElementById('timerDisplay').innerText = `${m}:${s.toString().padStart(2, '0')}`;
+                    updateTimerDisplay();
                     if(currentTimer.timeLeft <= 0) {
                         clearInterval(timerInterval);
-                        document.getElementById('btnSaveSession').classList.remove('hidden');
+                        currentTimer.isRunning = false;
+                        btn.innerText = "完了！";
+                        document.getElementById('btnSaveTimer').classList.remove('hidden');
                     }
                 }, 1000);
             } else {
@@ -179,84 +317,154 @@
             }
         }
 
-        function resetTimer() {
-            clearInterval(timerInterval);
-            currentTimer = { timeLeft: 25 * 60, isRunning: false };
-            document.getElementById('timerDisplay').innerText = "25:00";
-            document.getElementById('btnStartStop').innerText = "開始";
-            document.getElementById('btnSaveSession').classList.add('hidden');
-        }
+        function resetTimer() { setTimerDuration(currentTimer.duration); }
 
-        function saveTimerSession() {
-            addSession(25, 'timer', '集中学習', '');
-            resetTimer();
-        }
+        // --- データ処理 ---
+        function saveSession(method) {
+            const subject = document.getElementById('entrySubject').value.trim() || "未設定のミッション";
+            const details = document.getElementById('entryDetails').value.trim();
+            const memo = document.getElementById('entryMemo').value.trim();
+            let mins = 0;
+            let date = new Date().toLocaleDateString('sv-SE');
 
-        function addSession(minutes, type, subject, details, date = null) {
-            sessions.unshift({ id: Date.now(), date: date || new Date().toLocaleDateString('sv-SE'), minutes, type, subject, details });
-            localStorage.setItem('studySessions_v2', JSON.stringify(sessions));
-            updateStats();
+            if(method === 'timer') {
+                mins = currentTimer.duration;
+            } else {
+                mins = parseInt(document.getElementById('manualMinutes').value) || 0;
+                date = document.getElementById('manualDate').value;
+            }
+
+            if(mins <= 0) return alert("学習時間を入力してください");
+
+            const newSession = {
+                id: Date.now(),
+                subject,
+                details,
+                memo,
+                minutes: mins,
+                date,
+                type: method
+            };
+
+            sessions.unshift(newSession);
+            localStorage.setItem('studySessions_v4', JSON.stringify(sessions));
+            
+            ['entrySubject', 'entryDetails', 'entryMemo', 'manualMinutes'].forEach(id => document.getElementById(id).value = '');
+            if(method === 'timer') resetTimer();
+            
             renderHistory();
-        }
-
-        function saveManualSession() {
-            const mins = document.getElementById('manualMinutes').value;
-            const date = document.getElementById('manualDate').value;
-            if(!mins || !date) return alert("入力してください");
-            addSession(mins, 'manual', document.getElementById('manualSubject').value, '', date);
+            updateStats();
             switchTab('history');
         }
 
-        function updateStats() {
-            const total = sessions.reduce((acc, s) => acc + parseInt(s.minutes), 0);
-            document.getElementById('totalMinutesDisplay').innerText = total;
+        function deleteSession(id) {
+            if(confirm("この記録を削除しますか？")) {
+                sessions = sessions.filter(s => s.id !== id);
+                localStorage.setItem('studySessions_v4', JSON.stringify(sessions));
+                renderHistory();
+                updateStats();
+            }
         }
 
         function renderHistory() {
             const list = document.getElementById('historyList');
-            list.innerHTML = sessions.map(s => `
-                <div class="bg-white p-4 rounded-xl border flex justify-between">
-                    <div><b>${s.subject}</b> (${s.date})</div>
-                    <div class="text-indigo-600 font-bold">${s.minutes}分</div>
-                </div>
-            `).join('');
+            list.innerHTML = '';
+            const grouped = sessions.reduce((acc, s) => {
+                const d = s.date; if(!acc[d]) acc[d] = { total: 0, items: [] };
+                acc[d].total += s.minutes; acc[d].items.push(s); return acc;
+            }, {});
+
+            Object.keys(grouped).sort((a,b) => new Date(b) - new Date(a)).forEach(date => {
+                const group = grouped[date];
+                const section = document.createElement('div');
+                section.className = "space-y-4";
+                section.innerHTML = `
+                    <div class="px-6 flex justify-between items-center">
+                        <span class="text-xs font-black text-gray-400 uppercase tracking-widest">${date}</span>
+                        <div class="h-[1px] flex-1 mx-6 bg-gray-200"></div>
+                        <span class="text-xs font-black text-indigo-400">${group.total}分</span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4">
+                        ${group.items.map(s => `
+                            <div class="glass-card rounded-[2rem] p-6 hover:bg-white/60 transition-all flex gap-5">
+                                <div class="w-12 h-12 shrink-0 rounded-[1.2rem] flex items-center justify-center ${s.type === 'timer' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white border-2 border-indigo-100 text-indigo-500'}">
+                                    <i class="fas ${s.type === 'timer' ? 'fa-hourglass-start' : 'fa-edit'}"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h4 class="font-black text-gray-800 text-lg leading-tight truncate pr-4">${s.subject}</h4>
+                                        <span class="text-[10px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full shrink-0">${s.minutes} 分</span>
+                                    </div>
+                                    ${s.details ? `<p class="text-sm text-gray-500 leading-relaxed mb-3">${s.details.replace(/\n/g, '<br>')}</p>` : ''}
+                                    ${s.memo ? `<div class="inline-flex items-center gap-2 bg-white/40 px-3 py-1.5 rounded-xl text-[10px] font-bold text-gray-400 border border-white/50 italic">"${s.memo}"</div>` : ''}
+                                </div>
+                                <button onclick="deleteSession(${s.id})" class="text-gray-200 hover:text-red-400 transition-colors self-start p-1"><i class="fas fa-times"></i></button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                list.appendChild(section);
+            });
         }
 
-        // --- AI API Logic ---
-        async function callGemini(prompt, systemPrompt) {
-            // Critical: Check if key exists
-            const activeKey = internalApiKey || ""; 
-            if(!activeKey) return "Cくん！右上の設定（歯車アイコン）から Gemini API キーを設定してね。無料で取得できるよ！";
-
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${activeKey}`;
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] }
-            };
-
-            const delays = [1000, 2000, 4000, 8000];
-            for (let i = 0; i <= delays.length; i++) {
-                try {
-                    const res = await fetch(url, { method: 'POST', body: JSON.stringify(payload) });
-                    if(!res.ok) throw new Error("API Error");
-                    const data = await res.json();
-                    return data.candidates[0].content.parts[0].text;
-                } catch (e) {
-                    if(i === delays.length) return "Cくん！接続がうまくいかないみたい。キーが正しいか確認してみてね。";
-                    await new Promise(r => setTimeout(r, delays[i]));
+        function updateStats() {
+            const total = sessions.reduce((acc, s) => acc + s.minutes, 0);
+            document.getElementById('totalMinutesDisplay').innerText = total;
+            document.getElementById('sessionCountDisplay').innerText = sessions.length;
+            
+            const dates = [...new Set(sessions.map(s => s.date))].sort((a,b) => new Date(b) - new Date(a));
+            let streak = 0;
+            const today = new Date().toLocaleDateString('sv-SE');
+            if(dates.length > 0 && (dates[0] === today || new Date(dates[0]) >= new Date(Date.now() - 86400000))) {
+                streak = 1;
+                for(let i=0; i<dates.length-1; i++){
+                    if((new Date(dates[i]) - new Date(dates[i+1]))/86400000 <= 1.1) streak++;
+                    else break;
                 }
             }
+            document.getElementById('streakDisplay').innerText = `${streak}日`;
+            
+            const h = total / 60;
+            let rank = { t: "見習い", i: "🌱" };
+            if(h >= 50) rank = { t: "伝説", i: "👑" };
+            else if(h >= 20) rank = { t: "熟練者", i: "🎓" };
+            else if(h >= 5) rank = { t: "努力家", i: "📘" };
+            document.getElementById('rankDisplay').innerText = `${rank.i} ${rank.t}`;
+        }
+
+        // --- AIコーチ処理 ---
+        async function callGemini(prompt, systemPrompt) {
+            if(!internalApiKey) return "Cくん！設定からAPIキーを入力してね。";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${internalApiKey}`;
+            try {
+                const res = await fetch(url, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ 
+                        contents: [{ parts: [{ text: prompt }] }], 
+                        systemInstruction: { parts: [{ text: systemPrompt }] } 
+                    }) 
+                });
+                const data = await res.json();
+                return data.candidates[0].content.parts[0].text;
+            } catch (e) { return "Cくん！接続に失敗しました。APIキーを確認してみてね。"; }
         }
 
         function appendMessage(role, text) {
-            const div = document.createElement('div');
-            div.className = `p-3 rounded-xl max-w-[80%] ${role === 'user' ? 'bg-indigo-600 text-white ml-auto' : 'bg-white border mr-auto'}`;
-            div.innerText = text;
-            document.getElementById('chatHistory').appendChild(div);
-            document.getElementById('chatHistory').scrollTop = 99999;
+            const container = document.getElementById('chatHistory');
+            const msg = document.createElement('div');
+            msg.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-5`;
+            msg.innerHTML = `
+                <div class="max-w-[85%] p-5 rounded-[2rem] text-[13px] font-bold leading-relaxed shadow-sm ${role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white/80 border border-white/50 text-gray-800 rounded-tl-none'} ">
+                    ${text}
+                </div>
+            `;
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
         }
 
-        function initCoach() { appendMessage('assistant', "Cくん！お疲れ様。右上の設定からAPIキーを入力すれば、私と話せるようになるよ！"); }
+        function initCoach() {
+            appendMessage('assistant', `Cくん！学習入力の準備はできた？ 今日の目標や、勉強の悩みがあればいつでもコーチに相談してね！`);
+        }
 
         async function handleChatSubmit(e) {
             e.preventDefault();
@@ -266,21 +474,48 @@
             appendMessage('user', text);
             input.value = '';
             document.getElementById('typingIndicator').classList.remove('hidden');
-            const response = await callGemini(text, "あなたはCくんのAIコーチです。常にCくん！から始めて。");
+            const system = `あなたはCくんのAI学習コーチです。
+・回答は必ず「Cくん！」から始めてください。
+・ポジティブでやる気が出るアドバイスを心がけてください。
+・親しみやすい日本語で、複雑な表現は避けてください。
+・現在の合計学習時間：${document.getElementById('totalMinutesDisplay').innerText}分
+・現在の継続日数：${document.getElementById('streakDisplay').innerText}`;
+
+            const response = await callGemini(text, system);
             document.getElementById('typingIndicator').classList.add('hidden');
             appendMessage('assistant', response);
         }
 
+        function saveSettings() {
+            internalApiKey = document.getElementById('userApiKey').value.trim();
+            localStorage.setItem('gemini_api_key', internalApiKey);
+            alert("設定を保存しました。");
+            toggleModal('settingsModal');
+        }
+
+        function toggleModal(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('hidden');
+            el.classList.toggle('flex');
+        }
+
         function exportData() {
-            const blob = new Blob([JSON.stringify(sessions)], {type: 'application/json'});
-            alert("データをコピーしました。JSON: " + JSON.stringify(sessions));
+            const text = JSON.stringify(sessions);
+            const el = document.createElement('textarea');
+            el.value = text; document.body.appendChild(el); el.select();
+            document.execCommand('copy'); document.body.removeChild(el);
+            alert("データをコピーしました。メモ帳などに保存してください。");
         }
 
         function importData() {
-            sessions = JSON.parse(document.getElementById('importText').value);
-            localStorage.setItem('studySessions_v2', JSON.stringify(sessions));
-            renderHistory();
-            updateStats();
+            try {
+                const data = JSON.parse(document.getElementById('importText').value);
+                sessions = data;
+                localStorage.setItem('studySessions_v4', JSON.stringify(sessions));
+                renderHistory(); updateStats();
+                alert("データの取り込みが完了しました。");
+                toggleModal('dataModal');
+            } catch(e) { alert("形式が正しくありません。"); }
         }
     </script>
 </body>
