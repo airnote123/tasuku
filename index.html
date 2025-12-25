@@ -266,4 +266,22 @@
             appendMessage('user', text);
             input.value = '';
             document.getElementById('typingIndicator').classList.remove('hidden');
-            const response = await callGemini(text, "あなたは
+            const response = await callGemini(text, "あなたはCくんのAIコーチです。常にCくん！から始めて。");
+            document.getElementById('typingIndicator').classList.add('hidden');
+            appendMessage('assistant', response);
+        }
+
+        function exportData() {
+            const blob = new Blob([JSON.stringify(sessions)], {type: 'application/json'});
+            alert("データをコピーしました。JSON: " + JSON.stringify(sessions));
+        }
+
+        function importData() {
+            sessions = JSON.parse(document.getElementById('importText').value);
+            localStorage.setItem('studySessions_v2', JSON.stringify(sessions));
+            renderHistory();
+            updateStats();
+        }
+    </script>
+</body>
+</html>
